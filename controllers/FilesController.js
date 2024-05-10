@@ -118,6 +118,65 @@ class FilesController {
     }
     return null;
   }
+
+  static async getShow(req, res) {
+    const user = await FilesController.getUsers(req);
+    if (!user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    const files = dbClient.db.collection('files');
+    const fileId = req.params.id;
+    const idObj = new ObjectID(fileId);
+    const file = await files.findOne({ _id: idObj, userId: user._id });
+    if (!file) {
+      return res.status(404).json({ error: 'Not found' });
+    } else {
+      return res.status(200).json(file);
+    }
+  }
+
+  static async getIndex(req, res) {
+    const user = await FilesController.getUsers(req);
+    if (!user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    let query;
+    const { parentId, page } = req.query;
+    const pages = page || 0;
+    const files = dbClient.db.collection('files');
+    if (!parentId) {
+      query = { userId: user._id };
+    } else {
+      query = { userId: user._id, parentId: ObjectID(parentId) };
+    }
+    files.aggregate(
+      [
+        { $match: query },
+        { $sort: { _id: -1 } },
+        {
+          $facet: {
+            metadata: [{ $count: 'total' }, { $addFields: { page: parseInt(pages, 10) } }],
+            data: [{ $skip: 20 * parseInt(pages, 10) }, { $limit: 20 }],
+          },
+        },
+      ],
+    ).toArray((error, result) => {
+      if (result) {
+        const final = result[0].data.map((file) => {
+          const tmpFile = {
+            ...file,
+            id: file._id,
+          };
+          delete tmpFile._id;
+          delete tmpFile.localPath;
+          return tmpFile;
+        });
+        return res.status(200).json(final);
+      }
+      return res.status(404).json({ error: 'Not found' });
+    });
+    return null;
+  }
 }
 
 module.exports = FilesController;
