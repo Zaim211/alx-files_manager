@@ -1,8 +1,9 @@
 import { ObjectID } from 'mongodb';
+import { v4 as uuidv4 } from 'uuid';
 import dbClient from '../utils/db';
 import redisClient from '../utils/redis';
 import Queue from 'bull';
-import fs from 'fs';
+import { promises as fs } from 'fs';
 
 const queueFile = new Queue('queueFile', 'redis://127.0.0.1:6379');
 
@@ -14,7 +15,7 @@ class FilesController {
     if (userId) {
       const users = dbClient.db.collection('users');
       const idObj = new ObjectID(userId);
-      const user = await users.findOne({ _id: idObject });
+      const user = await users.findOne({ _id: idObj });
       if (!user) return null;
       return user;
     }
@@ -95,7 +96,7 @@ class FilesController {
           localPath: fileName,
         },
       ).then((result) => {
-        response.status(201).json(
+        res.status(201).json(
           {
             id: result.insertedId,
             userId: user._id,
