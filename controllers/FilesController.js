@@ -4,6 +4,7 @@ import dbClient from '../utils/db';
 import redisClient from '../utils/redis';
 import Queue from 'bull';
 import { promises as fs } from 'fs';
+import mime from 'mime-types';
 
 const queueFile = new Queue('queueFile', 'redis://127.0.0.1:6379');
 
@@ -187,8 +188,7 @@ class FilesController {
     const files = dbClient.db.collection('files');
     const idObj = new ObjectID(id);
     const updateStatus = { $set: { isPublic: true } };
-    const options = { returnOriginal: false };
-    files.findOneAndUpdate({ _id: idObj, userId: user._id }, updateStatus, options, (err, file) => {
+    files.findOneAndUpdate({ _id: idObj, userId: user._id }, updateStatus, (err, file) => {
       if (!file.lastErrorObject.updatedExisting) {
         return res.status(404).json({ error: 'Not found' });
       }
@@ -206,14 +206,63 @@ class FilesController {
     const files = dbClient.db.collection('files');
     const idObj = new ObjectID(id);
     const updateStatus = { $set: { isPublic: true } };
-    const options = { returnOriginal: false };
-    files.findOneAndUpdate({ _id: idObj, userId: user._id }, updateStatus, options, (err, file) => {
+    files.findOneAndUpdate({ _id: idObj, userId: user._id }, updateStatus, (err, file) => {
       if (!file.lastErrorObject.updatedExisting) {
         return res.status(404).json({ error: 'Not found' });
       }
       return res.status(200).json(file.value);
     });
     return null;
+  }
+
+  static async getFile(req, res) {
+    const {id} = req.params;
+    const files = dbClient.db.collection('files');
+    const idObj = new ObjectID(id);
+    files.findOne({ _id: idObj }, async (err, file) => {
+      if (!file) {
+        return res.status(404).json({ error: 'Not found' });
+      }
+      if (file.isPublic) {
+	try {
+          let fileName = file.localPath;
+          const size = req.param('size');
+          if (size) {
+            fileName = `${file.localPath}_${size}`;
+          }
+          const data = await fs.readFile(fileName);
+          const contentType = mime.contentType(file.name);
+          return res.header('Content-Type', contentType).status(200).send(data);
+        } catch (error) {
+          console.log(error);
+          return res.status(404).json({ error: 'Not found' });
+        }
+      } else {
+        const user = await FilesController.getUser(req);
+        if (!user) {
+          return res.status(404).json({ error: 'Not found' });
+        }
+        if (file.userId.toString() === user._id.toString()) {
+          if (file.type === 'folder') {
+            return res.status(400).json({ error: "A folder doesn't have content" });
+          }
+          try {
+            let fileName = file.localPath;
+            const size = req.param('size');
+            if (size) {
+              fileName = `${file.localPath}_${size}`;
+            }
+            const contentType = mime.contentType(file.name);
+            return res.header('Content-Type', contentType).status(200).sendFile(fileName);
+          } catch (error) {
+            console.log(error);
+            return res.status(404).json({ error: 'Not found' });
+          }
+        } else {
+          return res.status(404).json({ error: 'Not found' });
+        }
+      }
+    });
   }
 }
 
