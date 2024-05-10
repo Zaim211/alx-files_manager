@@ -205,7 +205,7 @@ class FilesController {
     const { id } = req.params;
     const files = dbClient.db.collection('files');
     const idObj = new ObjectID(id);
-    const updateStatus = { $set: { isPublic: true } };
+    const updateStatus = { $set: { isPublic: false } };
     files.findOneAndUpdate({ _id: idObj, userId: user._id }, updateStatus, (err, file) => {
       if (!file.lastErrorObject.updatedExisting) {
         return res.status(404).json({ error: 'Not found' });
@@ -224,9 +224,12 @@ class FilesController {
         return res.status(404).json({ error: 'Not found' });
       }
       if (file.isPublic) {
+	if (file.type === 'folder') {
+          return res.status(400).json({ error: "A folder doesn't have content" });
+        }
 	try {
           let fileName = file.localPath;
-          const size = req.param('size');
+          const size = req.param.size;
           if (size) {
             fileName = `${file.localPath}_${size}`;
           }
@@ -238,7 +241,7 @@ class FilesController {
           return res.status(404).json({ error: 'Not found' });
         }
       } else {
-        const user = await FilesController.getUser(req);
+        const user = await FilesController.getUsers(req);
         if (!user) {
           return res.status(404).json({ error: 'Not found' });
         }
