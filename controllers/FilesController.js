@@ -6,7 +6,7 @@ import Queue from 'bull';
 import { promises as fs } from 'fs';
 import mime from 'mime-types';
 
-const queueFile = new Queue('queueFile', 'redis://127.0.0.1:6379');
+const fileQueue = new Queue('fileQueue', 'redis://127.0.0.1:6379');
 
 class FilesController {
   static async getUsers(req, res) {
@@ -108,7 +108,7 @@ class FilesController {
           },
         );
         if (type === 'image') {
-          queueFile.add(
+          fileQueue.add(
             {
               userId: user._id,
               fileId: result.insertedId,
