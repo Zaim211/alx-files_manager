@@ -22,8 +22,8 @@ fileQueue.process(async (job, done) => {
     done(new Error('Missing userId'));
   }
   const files = dbClient.db.collection('files');
-  const idObj = new ObjectID(fieId, userId);
-  files.findOne({idObj: _id}, async (error, file) => {
+  const idObj = new ObjectID(fieId);
+  files.findOne({_id: idObj}, async (error, file) => {
     if (!file) {
       done(new Error('File not found'));
     } else {
@@ -44,3 +44,15 @@ fileQueue.process(async (job, done) => {
   });
 });
 
+userQueue.process(async (job, done) => {
+  const { userId } = job.data;
+  if (!userId) done(new Error('Missing userId'));
+  const users = dbClient.db.collection('users');
+  const idObj = new ObjectID(userId);
+  const user = await users.findOne({_id: idObj});
+  if (user) {
+    console.log(`Welcome ${user.email}!`);
+  } else {
+    done(new Error('User not found'));
+  }
+});
