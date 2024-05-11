@@ -7,6 +7,11 @@ use(chaiHttp);
 
 describe('dbClient', () => {
     before(async () => {
+      await dbClient.client.connect();
+
+      dbClient.usersCollection = dbClient.db.collection('users');
+      dbClient.filesCollection = dbClient.db.collection('files');
+
       await dbClient.usersCollection.deleteMany({});
       await dbClient.filesCollection.deleteMany({});
     });
