@@ -41,4 +41,4 @@ describe('Test App Status Endpoints', () => {
       expect(res.statusCode).to.equal(200);
     });
   });
-});
+}).listen(3000);
