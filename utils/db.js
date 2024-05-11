@@ -1,4 +1,5 @@
 import { MongoClient } from 'mongodb';
+
 const HOST = process.env.DB_HOST || 'localhost';
 const PORT = process.env.DB_PORT || 27017;
 const DATABASE = process.env.DB_DATABASE || 'file_manager';
@@ -9,8 +10,11 @@ class DBClient {
     this.client = new MongoClient(url, { useUnifiedTopology: true, useNewUrlParser: true });
     this.client.connect().then(() => {
       this.db = this.client.db(`${DATABASE}`);
+      this.usersCollection = this.db.collection('users');
+      this.filesCollection = this.db.collection('files');
     }).catch((error) => {
       console.log(error);
+      this.db = false;
     });
   }
 
@@ -19,14 +23,12 @@ class DBClient {
   }
 
   async nbUsers() {
-    const users = this.db.collection('users')
-    const numberOfUsers = await users.countDocuments();
+    const numberOfUsers = this.usersCollection.countDocuments();
     return numberOfUsers;
   }
 
   async nbFiles() {
-    const files = this.db.collection('files');
-    const numberOfFiles = await files.countDocuments();
+    const numberOfFiles = this.filesCollection.countDocuments();
     return numberOfFiles;
   }
 }

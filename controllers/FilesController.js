@@ -269,6 +269,7 @@ class FilesController {
             return res.status(404).json({ error: 'Not found' });
           }
         } else {
+	  console.log(`Wrong user: file.userId=${file.userId}; userId=${user._id}`);
           return res.status(404).json({ error: 'Not found' });
         }
       }

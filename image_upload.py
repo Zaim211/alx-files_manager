@@ -1,3 +1,4 @@
+#!/user/bin/env python3
 import base64
 import requests
 import sys
